@@ -90,6 +90,48 @@ html, body, #root {
 .sync-indicator.offline { color: var(--text-muted); }
 .sync-indicator.checking { color: var(--text-muted); opacity: 0.5; }
 
+/* ── Offline Error Banner ── */
+.sync-error-banner {
+  background: #fff3cd;
+  color: #856404;
+  font-size: 12px;
+  text-align: center;
+  padding: 6px 16px;
+  border-bottom: 1px solid #ffc107;
+}
+
+/* ── Loading Screen ── */
+.loading-shell {
+  justify-content: center;
+  align-items: center;
+}
+
+.loading-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 40px;
+}
+
+.loading-spinner {
+  width: 32px;
+  height: 32px;
+  border: 2px solid var(--border);
+  border-top-color: var(--text);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
 /* ── Main Content ── */
 .main-content {
   flex: 1;

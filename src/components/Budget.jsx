@@ -57,6 +57,25 @@ export default function Budget() {
     });
   }, []);
 
+  // Real-time sync: changes from the other profile (or another device) apply instantly
+  useEffect(() => {
+    return budgetDb.subscribe(({ eventType, new: r, old: o }) => {
+      if (eventType === "INSERT") {
+        setTransactions((prev) => {
+          if (prev.some((t) => String(t.id) === String(r.id))) return prev;
+          return [...prev, { id: r.id, type: r.type, amount: r.amount, category: r.category, description: r.description, date: r.date, person: r.person, status: r.status }];
+        });
+      } else if (eventType === "UPDATE") {
+        setTransactions((prev) => prev.map((t) => String(t.id) === String(r.id)
+          ? { id: r.id, type: r.type, amount: r.amount, category: r.category, description: r.description, date: r.date, person: r.person, status: r.status }
+          : t
+        ));
+      } else if (eventType === "DELETE") {
+        setTransactions((prev) => prev.filter((t) => String(t.id) !== String(o.id)));
+      }
+    });
+  }, []);
+
   useEffect(() => {
     localStorage.setItem(BUDGET_KEY, JSON.stringify(transactions));
   }, [transactions]);

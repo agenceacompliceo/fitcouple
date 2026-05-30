@@ -1,5 +1,5 @@
 import { createContext, useContext, useState } from "react";
-import { profilesDb, syncStatus } from "../lib/db";
+import { profilesDb } from "../lib/db";
 
 const ProfileContext = createContext(null);
 
@@ -11,19 +11,28 @@ function loadSportTime(profile) {
 export function ProfileProvider({ children }) {
   const [profile, setProfile] = useState(() => localStorage.getItem("fitcouple_profile") || null);
   const [sportTime, setSportTimeState] = useState(() => loadSportTime(localStorage.getItem("fitcouple_profile")));
+  const [loading, setLoading] = useState(false);
+  const [dbError, setDbError] = useState(null);
 
   const selectProfile = (name) => {
     setProfile(name);
+    setLoading(true);
+    setDbError(null);
     localStorage.setItem("fitcouple_profile", name);
-    const localTime = loadSportTime(name);
-    setSportTimeState(localTime);
-    // Sync from Supabase
-    profilesDb.get(name).then((data) => {
-      if (data?.sportTime) {
-        setSportTimeState(data.sportTime);
-        localStorage.setItem(`fitcouple_sport_time_${name}`, data.sportTime);
-      }
-    });
+    setSportTimeState(loadSportTime(name));
+
+    profilesDb.get(name)
+      .then((data) => {
+        if (data?.sportTime) {
+          setSportTimeState(data.sportTime);
+          localStorage.setItem(`fitcouple_sport_time_${name}`, data.sportTime);
+        }
+      })
+      .catch((err) => {
+        console.error("[ProfileContext] selectProfile error:", err);
+        setDbError("Impossible de joindre Supabase — mode hors ligne activé.");
+      })
+      .finally(() => setLoading(false));
   };
 
   const setSportTime = (time) => {
@@ -40,7 +49,7 @@ export function ProfileProvider({ children }) {
   };
 
   return (
-    <ProfileContext.Provider value={{ profile, selectProfile, logout, sportTime, setSportTime }}>
+    <ProfileContext.Provider value={{ profile, selectProfile, logout, sportTime, setSportTime, loading, dbError }}>
       {children}
     </ProfileContext.Provider>
   );

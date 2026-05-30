@@ -8,7 +8,7 @@ import Alarms from "./components/Alarms";
 import Budget from "./components/Budget";
 import BottomNav from "./components/BottomNav";
 import { IconX, IconSettings, IconCloudCheck, IconCloudOff } from "@tabler/icons-react";
-import { syncStatus, checkConnection } from "./lib/db";
+import { syncStatus, checkConnection, profilesDb } from "./lib/db";
 import "./App.css";
 
 function SettingsSheet({ onClose }) {
@@ -60,18 +60,30 @@ function SettingsSheet({ onClose }) {
 }
 
 function AppContent() {
-  const { profile } = useProfile();
+  const { profile, loading, dbError } = useProfile();
   const [tab, setTab] = useState("dashboard");
   const [exerciseSession, setExerciseSession] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [sync, setSync] = useState(syncStatus.get());
 
   useEffect(() => {
+    profilesDb.ensureExists();
     checkConnection();
     return syncStatus.subscribe(setSync);
   }, []);
 
   if (!profile) return <ProfileSelect />;
+
+  if (loading) {
+    return (
+      <div className="app-shell loading-shell">
+        <div className="loading-screen">
+          <div className="loading-spinner" />
+          <p className="loading-text">Chargement…</p>
+        </div>
+      </div>
+    );
+  }
 
   const navigateToExercises = (session) => {
     setExerciseSession(session);
@@ -90,7 +102,10 @@ function AppContent() {
       <header className="top-bar">
         <span className="top-bar-name">{displayName}</span>
         <div className="top-bar-right">
-          <span className={`sync-indicator ${sync}`} title={sync === "online" ? "Synchronisé" : sync === "offline" ? "Hors ligne" : "Vérification…"}>
+          <span
+            className={`sync-indicator ${sync}`}
+            title={sync === "online" ? "Synchronisé avec Supabase" : sync === "offline" ? "Hors ligne — données locales" : "Vérification…"}
+          >
             {sync === "online"
               ? <IconCloudCheck size={18} stroke={1.5} />
               : <IconCloudOff size={18} stroke={1.5} />}
@@ -100,6 +115,12 @@ function AppContent() {
           </button>
         </div>
       </header>
+
+      {(sync === "offline" || dbError) && (
+        <div className="sync-error-banner">
+          {dbError ?? "Hors ligne — les données ne se synchronisent pas."}
+        </div>
+      )}
 
       <main className="main-content" key={tab}>
         {tab === "dashboard" && <Dashboard onNavigateToExercises={navigateToExercises} />}
