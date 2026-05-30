@@ -7,7 +7,7 @@ import BodyTracking from "./components/BodyTracking";
 import Alarms from "./components/Alarms";
 import Budget from "./components/Budget";
 import BottomNav from "./components/BottomNav";
-import { IconX, IconSettings, IconCloudCheck, IconCloudOff } from "@tabler/icons-react";
+import { IconX, IconSettings, IconCloudCheck, IconCloudOff, IconSwitchHorizontal } from "@tabler/icons-react";
 import { syncStatus, checkConnection, profilesDb } from "./lib/db";
 import { supabase } from "./lib/supabase";
 import "./App.css";
@@ -61,7 +61,7 @@ function SettingsSheet({ onClose }) {
 }
 
 function AppContent() {
-  const { profile, loading, dbError } = useProfile();
+  const { profile, selectProfile, loading, dbError } = useProfile();
   const [tab, setTab] = useState("dashboard");
   const [exerciseSession, setExerciseSession] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
@@ -103,11 +103,19 @@ function AppContent() {
   };
 
   const displayName = profile === "adam" ? "Adam" : "Andréa";
+  const otherProfile = profile === "adam" ? "andrea" : "adam";
+  const otherName = profile === "adam" ? "Andréa" : "Adam";
 
   return (
     <div className="app-shell">
       <header className="top-bar">
-        <span className="top-bar-name">{displayName}</span>
+        <div className="top-bar-left">
+          <span className="top-bar-name">{displayName}</span>
+          <button className="profile-switch-btn" onClick={() => selectProfile(otherProfile)}>
+            <IconSwitchHorizontal size={13} stroke={1.5} />
+            <span>{otherName}</span>
+          </button>
+        </div>
         <div className="top-bar-right">
           <span
             className={`sync-indicator ${sync}`}

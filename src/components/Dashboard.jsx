@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useProfile } from "../context/ProfileContext";
 import { adamSchedule, adamScheduleAfternoon, adamProgram, adamMacros } from "../data/adam";
 import { andreaSchedule, andreaScheduleAfternoon, andreaProgram, andreaMacros } from "../data/andrea";
@@ -5,10 +6,12 @@ import { motivationsAdam, motivationsAndrea } from "../data/motivations";
 import {
   IconSun, IconMoon, IconPill, IconFlame, IconToolsKitchen2,
   IconHeart, IconBarbell, IconArrowRight, IconLeaf,
+  IconChevronLeft, IconChevronRight,
 } from "@tabler/icons-react";
 
 const DAYS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
 const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
+const MAX_OFFSET = 7;
 
 const ICON_MAP = {
   sun: IconSun,
@@ -33,7 +36,6 @@ function getDailyMotivation(motivations) {
 function buildDaySchedule(baseSchedule, isRestDay, sportTime) {
   if (!isRestDay) return baseSchedule;
 
-  // On Sunday: keep meals/supplements/skincare/routine, drop sport & booster
   const filtered = baseSchedule.filter((s) => s.type !== "sport" && s.iconType !== "bolt");
 
   const restTime = sportTime === "morning" ? "11:00" : "15:00";
@@ -61,6 +63,8 @@ function buildDaySchedule(baseSchedule, isRestDay, sportTime) {
 
 export default function Dashboard({ onNavigateToExercises }) {
   const { profile, sportTime } = useProfile();
+  const [dayOffset, setDayOffset] = useState(0);
+
   const isAdam = profile === "adam";
 
   const baseSchedule = isAdam
@@ -71,35 +75,60 @@ export default function Dashboard({ onNavigateToExercises }) {
   const macros = isAdam ? adamMacros : andreaMacros;
   const motivations = isAdam ? motivationsAdam : motivationsAndrea;
 
-  const now = new Date();
-  const dayOfWeek = now.getDay();
-  const isRestDay = dayOfWeek === 0; // Sunday always rest
+  const displayDate = new Date();
+  displayDate.setDate(displayDate.getDate() + dayOffset);
+  const dayOfWeek = displayDate.getDay();
+  const isToday = dayOffset === 0;
+  const isRestDay = dayOfWeek === 0;
   const todayProgram = isRestDay ? "rest" : program[dayOfWeek % program.length];
-
   const schedule = buildDaySchedule(baseSchedule, isRestDay, sportTime);
 
+  const now = new Date();
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const slotMins = (time) => { const [h, m] = time.split(":").map(Number); return h * 60 + m; };
-  const isCurrentSlot = (time) => { const sm = slotMins(time); return nowMinutes >= sm && nowMinutes < sm + 90; };
-  const isPast = (time) => nowMinutes > slotMins(time) + 90;
+  const isCurrentSlot = (time) => isToday && nowMinutes >= slotMins(time) && nowMinutes < slotMins(time) + 90;
+  const isPast = (time) => dayOffset < 0 || (isToday && nowMinutes > slotMins(time) + 90);
 
-  const isSportSlot = (slot) => slot.type === "sport" && !isRestDay;
+  const isSportSlot = (slot) => slot.type === "sport" && !isRestDay && isToday;
+
+  const dayLabel = `${DAYS[dayOfWeek]} ${displayDate.getDate()} ${MONTHS[displayDate.getMonth()]}`;
 
   return (
     <div className="screen">
       <div className="dashboard-header">
-        <div>
-          <div className="day-name">{DAYS[dayOfWeek]}</div>
-          <div className="day-date">{now.getDate()} {MONTHS[now.getMonth()]}</div>
+        <div className="day-nav">
+          <button
+            className="btn-ghost day-nav-btn"
+            onClick={() => setDayOffset((d) => Math.max(-MAX_OFFSET, d - 1))}
+            disabled={dayOffset <= -MAX_OFFSET}
+          >
+            <IconChevronLeft size={18} stroke={1.5} />
+          </button>
+          <div className="day-info">
+            <div className="day-name">
+              {DAYS[dayOfWeek]}
+              {isToday && <span className="today-dot" />}
+            </div>
+            <div className="day-date">{displayDate.getDate()} {MONTHS[displayDate.getMonth()]}</div>
+          </div>
+          <button
+            className="btn-ghost day-nav-btn"
+            onClick={() => setDayOffset((d) => Math.min(MAX_OFFSET, d + 1))}
+            disabled={dayOffset >= MAX_OFFSET}
+          >
+            <IconChevronRight size={18} stroke={1.5} />
+          </button>
         </div>
         <div className={`today-chip ${isRestDay || todayProgram === "rest" ? "rest" : ""}`}>
           {PROGRAM_LABELS[todayProgram]}
         </div>
       </div>
 
-      <div className="motivation-card">
-        <p>{getDailyMotivation(motivations)}</p>
-      </div>
+      {isToday && (
+        <div className="motivation-card">
+          <p>{getDailyMotivation(motivations)}</p>
+        </div>
+      )}
 
       <div className="macros-grid">
         {[
@@ -115,7 +144,7 @@ export default function Dashboard({ onNavigateToExercises }) {
         ))}
       </div>
 
-      <h3 className="section-title">Planning du jour</h3>
+      <h3 className="section-title">Planning — {dayLabel}</h3>
 
       <div className="timeline">
         {schedule.map((slot, i) => {

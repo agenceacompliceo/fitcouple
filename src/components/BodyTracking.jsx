@@ -1,18 +1,18 @@
 import { useState, useEffect } from "react";
 import { useProfile } from "../context/ProfileContext";
 import { getEncouragement } from "../data/encouragements";
+import { bodyMeasurements as bm, profilesDb } from "../lib/db";
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine, Legend,
+  Tooltip, ResponsiveContainer, Legend,
 } from "recharts";
 import {
-  IconPlus, IconTrash, IconTarget, IconChevronDown, IconChevronUp,
+  IconPlus, IconTrash,
   IconTrendingUp, IconTrendingDown, IconMinus,
 } from "@tabler/icons-react";
 
 const BODY_KEY = "fitcouple_body_";
 const HEIGHT_KEY = "fitcouple_height_";
-const TARGETS_KEY = "fitcouple_targets_";
 const DEFAULT_HEIGHTS = { adam: 180, andrea: 165 };
 
 function getWeekStart(date = new Date()) {
@@ -25,12 +25,12 @@ function getWeekStart(date = new Date()) {
 
 function formatWeekLabel(weekStart) {
   const d = new Date(weekStart + "T12:00:00");
-  return `${d.getDate()} ${["jan", "fév", "mar", "avr", "mai", "juin", "juil", "août", "sep", "oct", "nov", "déc"][d.getMonth()]}`;
+  return `${d.getDate()} ${["jan","fév","mar","avr","mai","juin","juil","août","sep","oct","nov","déc"][d.getMonth()]}`;
 }
 
 function formatWeekFull(weekStart) {
   const d = new Date(weekStart + "T12:00:00");
-  return `Semaine du ${d.getDate()} ${["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"][d.getMonth()]} ${d.getFullYear()}`;
+  return `Semaine du ${d.getDate()} ${["janvier","février","mars","avril","mai","juin","juillet","août","septembre","octobre","novembre","décembre"][d.getMonth()]} ${d.getFullYear()}`;
 }
 
 function calcBMI(weight, height) {
@@ -45,6 +45,10 @@ function getBMILabel(bmi) {
   if (bmi < 25) return "Poids normal";
   if (bmi < 30) return "Surpoids";
   return "Obésité";
+}
+
+function ls(key, fallback = null) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? fallback; } catch { return fallback; }
 }
 
 const CustomTooltip = ({ active, payload, label }) => {
@@ -66,32 +70,44 @@ const EMPTY_FORM = { weight: "", waist: "", hips: "", arms: "", thighs: "" };
 export default function BodyTracking() {
   const { profile } = useProfile();
 
-  const [entries, setEntries] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(BODY_KEY + profile)) || []; } catch { return []; }
-  });
+  const [entries, setEntries] = useState(() => ls(BODY_KEY + profile, []));
   const [height, setHeight] = useState(() => {
-    const stored = localStorage.getItem(HEIGHT_KEY + profile);
-    return stored ? parseFloat(stored) : DEFAULT_HEIGHTS[profile] || 170;
-  });
-  const [targets, setTargets] = useState(() => {
-    try { return JSON.parse(localStorage.getItem(TARGETS_KEY + profile)) || {}; } catch { return {}; }
+    const s = localStorage.getItem(HEIGHT_KEY + profile);
+    return s ? parseFloat(s) : DEFAULT_HEIGHTS[profile] || 170;
   });
 
   const currentWeek = getWeekStart();
   const thisWeekEntry = entries.find((e) => e.weekStart === currentWeek);
 
   const [showForm, setShowForm] = useState(false);
-  const [showTargets, setShowTargets] = useState(false);
   const [chartTab, setChartTab] = useState("weight");
   const [form, setForm] = useState(
     thisWeekEntry
-      ? { weight: thisWeekEntry.weight || "", waist: thisWeekEntry.waist || "", hips: thisWeekEntry.hips || "", arms: thisWeekEntry.arms || "", thighs: thisWeekEntry.thighs || "" }
+      ? { weight: thisWeekEntry.weight ?? "", waist: thisWeekEntry.waist ?? "", hips: thisWeekEntry.hips ?? "", arms: thisWeekEntry.arms ?? "", thighs: thisWeekEntry.thighs ?? "" }
       : EMPTY_FORM
   );
 
-  useEffect(() => { localStorage.setItem(BODY_KEY + profile, JSON.stringify(entries)); }, [entries, profile]);
-  useEffect(() => { localStorage.setItem(HEIGHT_KEY + profile, String(height)); }, [height, profile]);
-  useEffect(() => { localStorage.setItem(TARGETS_KEY + profile, JSON.stringify(targets)); }, [targets, profile]);
+  // Sync from Supabase on mount
+  useEffect(() => {
+    bm.getAll(profile).then((data) => {
+      if (data !== null) setEntries(data);
+    });
+    profilesDb.get(profile).then((data) => {
+      if (!data) return;
+      if (data.height) setHeight(data.height);
+    });
+  }, [profile]);
+
+  // Persist entries to localStorage
+  useEffect(() => {
+    localStorage.setItem(BODY_KEY + profile, JSON.stringify(entries));
+  }, [entries, profile]);
+
+  // Persist height
+  useEffect(() => {
+    localStorage.setItem(HEIGHT_KEY + profile, String(height));
+    profilesDb.upsert(profile, { height });
+  }, [height, profile]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -107,39 +123,30 @@ export default function BodyTracking() {
     setEntries((prev) =>
       thisWeekEntry ? prev.map((e) => (e.weekStart === currentWeek ? entry : e)) : [...prev, entry]
     );
+    bm.upsert(profile, entry);
     setShowForm(false);
   };
 
-  const deleteEntry = (weekStart) => setEntries((prev) => prev.filter((e) => e.weekStart !== weekStart));
+  const deleteEntry = (weekStart) => {
+    setEntries((prev) => prev.filter((e) => e.weekStart !== weekStart));
+    bm.delete(profile, weekStart);
+  };
 
   const latest = entries[entries.length - 1];
   const previous = entries[entries.length - 2];
   const encouragement = getEncouragement(profile, entries);
-
   const weightDiff = latest?.weight && previous?.weight ? (latest.weight - previous.weight).toFixed(1) : null;
-  const bmi = calcBMI(latest?.weight, height);
+  const bmiBmi = calcBMI(latest?.weight, height);
 
   const chartSlice = entries.slice(-12);
-  const weightChartData = chartSlice.map((e) => ({
-    week: formatWeekLabel(e.weekStart),
-    Poids: e.weight,
-  }));
-  const measureChartData = chartSlice.map((e) => ({
-    week: formatWeekLabel(e.weekStart),
-    Taille: e.waist,
-    Hanches: e.hips,
-    Bras: e.arms,
-    Cuisses: e.thighs,
-  }));
+  const weightChartData = chartSlice.map((e) => ({ week: formatWeekLabel(e.weekStart), Poids: e.weight }));
+  const measureChartData = chartSlice.map((e) => ({ week: formatWeekLabel(e.weekStart), Taille: e.waist, Hanches: e.hips, Bras: e.arms, Cuisses: e.thighs }));
 
   return (
     <div className="screen">
       <div className="screen-header">
         <h2 className="page-title">Suivi corporel</h2>
-        <button
-          className="btn-icon-round"
-          onClick={() => { setShowForm(!showForm); if (!showForm && thisWeekEntry) setForm({ weight: thisWeekEntry.weight || "", waist: thisWeekEntry.waist || "", hips: thisWeekEntry.hips || "", arms: thisWeekEntry.arms || "", thighs: thisWeekEntry.thighs || "" }); }}
-        >
+        <button className="btn-icon-round" onClick={() => { setShowForm(!showForm); if (!showForm && thisWeekEntry) setForm({ weight: thisWeekEntry.weight ?? "", waist: thisWeekEntry.waist ?? "", hips: thisWeekEntry.hips ?? "", arms: thisWeekEntry.arms ?? "", thighs: thisWeekEntry.thighs ?? "" }); }}>
           <IconPlus size={18} stroke={2} />
         </button>
       </div>
@@ -149,11 +156,7 @@ export default function BodyTracking() {
           <div className="form-week-label">{formatWeekFull(currentWeek)}</div>
           <div className="input-group">
             <label>Taille (cm)</label>
-            <input
-              type="number" value={height}
-              onChange={(e) => setHeight(parseFloat(e.target.value) || height)}
-              min="100" max="250"
-            />
+            <input type="number" value={height} onChange={(e) => setHeight(parseFloat(e.target.value) || height)} min="100" max="250" />
           </div>
           <div className="input-grid-2">
             {[
@@ -165,13 +168,7 @@ export default function BodyTracking() {
             ].map(({ key, label, placeholder }) => (
               <div key={key} className="input-group">
                 <label>{label}</label>
-                <input
-                  type="number"
-                  value={form[key]}
-                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  placeholder={placeholder}
-                  step="0.1"
-                />
+                <input type="number" value={form[key]} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} placeholder={placeholder} step="0.1" />
               </div>
             ))}
           </div>
@@ -195,25 +192,15 @@ export default function BodyTracking() {
                 </span>
               )}
             </div>
-            {bmi && (
+            {bmiBmi && (
               <div className="stat-card">
-                <span className="stat-value">{bmi}</span>
+                <span className="stat-value">{bmiBmi}</span>
                 <span className="stat-label">IMC</span>
-                <span className="stat-sublabel">{getBMILabel(bmi)}</span>
+                <span className="stat-sublabel">{getBMILabel(bmiBmi)}</span>
               </div>
             )}
-            {latest.waist && (
-              <div className="stat-card">
-                <span className="stat-value">{latest.waist}</span>
-                <span className="stat-label">taille cm</span>
-              </div>
-            )}
-            {latest.hips && (
-              <div className="stat-card">
-                <span className="stat-value">{latest.hips}</span>
-                <span className="stat-label">hanches cm</span>
-              </div>
-            )}
+            {latest.waist && <div className="stat-card"><span className="stat-value">{latest.waist}</span><span className="stat-label">taille cm</span></div>}
+            {latest.hips && <div className="stat-card"><span className="stat-value">{latest.hips}</span><span className="stat-label">hanches cm</span></div>}
           </div>
 
           <div className="encouragement-card">
@@ -245,18 +232,13 @@ export default function BodyTracking() {
               <XAxis dataKey="week" tick={{ fill: "#999", fontSize: 11 }} />
               <YAxis domain={["auto", "auto"]} tick={{ fill: "#999", fontSize: 11 }} />
               <Tooltip content={<CustomTooltip />} />
-              {chartTab === "weight" && targets.weight && (
-                <ReferenceLine y={targets.weight} stroke="#bbb" strokeDasharray="4 4" label={{ value: "Objectif", position: "insideTopRight", fill: "#aaa", fontSize: 10 }} />
-              )}
-              {chartTab === "weight" && (
-                <Line type="monotone" dataKey="Poids" stroke="#111" strokeWidth={2} dot={{ fill: "#111", r: 3 }} activeDot={{ r: 5 }} />
-              )}
+              {chartTab === "weight" && <Line type="monotone" dataKey="Poids" stroke="#111" strokeWidth={2} dot={{ fill: "#111", r: 3 }} activeDot={{ r: 5 }} />}
               {chartTab === "measures" && (
                 <>
-                  <Line type="monotone" dataKey="Taille" stroke="#111" strokeWidth={2} dot={{ fill: "#111", r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="Hanches" stroke="#555" strokeWidth={2} dot={{ fill: "#555", r: 3 }} activeDot={{ r: 5 }} />
-                  <Line type="monotone" dataKey="Bras" stroke="#888" strokeWidth={1.5} dot={{ fill: "#888", r: 3 }} activeDot={{ r: 5 }} strokeDasharray="4 2" />
-                  <Line type="monotone" dataKey="Cuisses" stroke="#aaa" strokeWidth={1.5} dot={{ fill: "#aaa", r: 3 }} activeDot={{ r: 5 }} strokeDasharray="2 2" />
+                  <Line type="monotone" dataKey="Taille" stroke="#111" strokeWidth={2} dot={{ fill: "#111", r: 3 }} />
+                  <Line type="monotone" dataKey="Hanches" stroke="#555" strokeWidth={2} dot={{ fill: "#555", r: 3 }} />
+                  <Line type="monotone" dataKey="Bras" stroke="#888" strokeWidth={1.5} dot={{ fill: "#888", r: 3 }} strokeDasharray="4 2" />
+                  <Line type="monotone" dataKey="Cuisses" stroke="#aaa" strokeWidth={1.5} dot={{ fill: "#aaa", r: 3 }} strokeDasharray="2 2" />
                   <Legend iconType="line" wrapperStyle={{ fontSize: 11, paddingTop: 8 }} />
                 </>
               )}
@@ -264,37 +246,6 @@ export default function BodyTracking() {
           </ResponsiveContainer>
         </div>
       )}
-
-      <div className="card targets-card">
-        <button className="targets-toggle" onClick={() => setShowTargets(!showTargets)}>
-          <IconTarget size={16} stroke={1.5} />
-          <span>Objectifs cibles</span>
-          {showTargets ? <IconChevronUp size={14} stroke={2} /> : <IconChevronDown size={14} stroke={2} />}
-        </button>
-        {showTargets && (
-          <div className="targets-body">
-            <div className="input-group">
-              <label>Poids cible (kg)</label>
-              <input
-                type="number"
-                value={targets.weight || ""}
-                onChange={(e) => setTargets((t) => ({ ...t, weight: parseFloat(e.target.value) || null }))}
-                placeholder={profile === "adam" ? "85" : "60"}
-                step="0.1"
-              />
-            </div>
-            <div className="input-group">
-              <label>Tour de taille cible (cm)</label>
-              <input
-                type="number"
-                value={targets.waist || ""}
-                onChange={(e) => setTargets((t) => ({ ...t, waist: parseFloat(e.target.value) || null }))}
-                placeholder={profile === "adam" ? "85" : "65"}
-              />
-            </div>
-          </div>
-        )}
-      </div>
 
       {entries.length > 0 && (
         <div className="history-section">
@@ -307,9 +258,7 @@ export default function BodyTracking() {
                   {entry.weight && <span className="hval"><strong>{entry.weight}</strong> kg</span>}
                   {entry.waist && <span className="hval">T {entry.waist}</span>}
                   {entry.hips && <span className="hval">H {entry.hips}</span>}
-                  {entry.weight && calcBMI(entry.weight, height) && (
-                    <span className="hval bmi-pill">IMC {calcBMI(entry.weight, height)}</span>
-                  )}
+                  {entry.weight && calcBMI(entry.weight, height) && <span className="hval bmi-pill">IMC {calcBMI(entry.weight, height)}</span>}
                 </div>
                 <button className="btn-ghost-sm" onClick={() => deleteEntry(entry.weekStart)}>
                   <IconTrash size={14} stroke={1.5} />

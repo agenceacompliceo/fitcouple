@@ -126,15 +126,36 @@ export default function Budget() {
     budgetDb.delete(id);
   };
 
-  const toggleLoanStatus = (id) => {
-    setTransactions((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        const newStatus = t.status === "pending" ? "repaid" : "pending";
-        budgetDb.updateStatus(id, newStatus);
-        return { ...t, status: newStatus };
-      })
-    );
+  const toggleLoanStatus = async (id) => {
+    const loan = transactions.find((t) => t.id === id);
+    if (!loan) return;
+    const newStatus = loan.status === "pending" ? "repaid" : "pending";
+
+    setTransactions((prev) => prev.map((t) => t.id === id ? { ...t, status: newStatus } : t));
+    budgetDb.updateStatus(id, newStatus);
+
+    if (newStatus === "repaid") {
+      const tempId = crypto.randomUUID();
+      const repayment = {
+        id: tempId,
+        type: "expense",
+        amount: loan.amount,
+        category: "Autre",
+        description: `Remboursement prêt — ${loan.person || ""}`.trim(),
+        date: new Date().toISOString().split("T")[0],
+        person: null,
+        status: null,
+      };
+      setTransactions((prev) => [...prev, repayment]);
+      const serverId = await budgetDb.insert(repayment);
+      if (serverId) {
+        setTransactions((prev) => {
+          const hasServer = prev.some((t) => String(t.id) === String(serverId));
+          if (hasServer) return prev.filter((t) => t.id !== tempId);
+          return prev.map((t) => t.id === tempId ? { ...t, id: serverId } : t);
+        });
+      }
+    }
   };
 
   return (
