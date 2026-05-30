@@ -25,6 +25,8 @@ const fail = (ctx, err) => {
 };
 
 // ── body_measurements ─────────────────────────────────────────────────────────
+// DB columns : poids, tour_taille, tour_hanches, tour_bras, tour_cuisses
+// App fields : weight, waist,      hips,         arms,      thighs
 export const bodyMeasurements = {
   async getAll(profile) {
     console.log(`[db] body_measurements: fetching profile=${profile}`);
@@ -40,11 +42,11 @@ export const bodyMeasurements = {
       return data.map((r) => ({
         weekStart: r.week_start,
         date: r.date,
-        weight: r.weight,
-        waist: r.waist,
-        hips: r.hips,
-        arms: r.arms,
-        thighs: r.thighs,
+        weight:  r.poids,
+        waist:   r.tour_taille,
+        hips:    r.tour_hanches,
+        arms:    r.tour_bras,
+        thighs:  r.tour_cuisses,
       }));
     } catch (err) {
       fail("body_measurements.getAll", err);
@@ -56,7 +58,16 @@ export const bodyMeasurements = {
     console.log(`[db] body_measurements: upsert week=${entry.weekStart} profile=${profile}`);
     supabase.from("body_measurements")
       .upsert(
-        { profile, week_start: entry.weekStart, date: entry.date, weight: entry.weight, waist: entry.waist, hips: entry.hips, arms: entry.arms, thighs: entry.thighs },
+        {
+          profile,
+          week_start:   entry.weekStart,
+          date:         entry.date,
+          poids:        entry.weight,
+          tour_taille:  entry.waist,
+          tour_hanches: entry.hips,
+          tour_bras:    entry.arms,
+          tour_cuisses: entry.thighs,
+        },
         { onConflict: "profile,week_start" }
       )
       .then(({ error }) => {
@@ -81,16 +92,22 @@ export const bodyMeasurements = {
 };
 
 // ── budget_entries ────────────────────────────────────────────────────────────
+// DB columns : montant, categorie, pret_personne, pret_statut, type=revenu/depense/pret
+// App fields : amount,  category,  person,        status,      type=income/expense/loan
+
+const BUDGET_TYPE_TO_DB   = { income: "revenu", expense: "depense", loan: "pret" };
+const BUDGET_TYPE_FROM_DB = { revenu: "income", depense: "expense", pret: "loan" };
+
 function mapBudgetRow(r) {
   return {
-    id: r.id,
-    type: r.type,
-    amount: r.amount,
-    category: r.category,
+    id:          r.id,
+    type:        BUDGET_TYPE_FROM_DB[r.type] ?? r.type,
+    amount:      r.montant,
+    category:    r.categorie,
     description: r.description,
-    date: r.date,
-    person: r.person,
-    status: r.status,
+    date:        r.date,
+    person:      r.pret_personne,
+    status:      r.pret_statut,
   };
 }
 
@@ -115,8 +132,14 @@ export const budgetEntries = {
   insert(tx) {
     console.log(`[db] budget_entries: insert id=${tx.id} type=${tx.type} amount=${tx.amount}`);
     supabase.from("budget_entries").insert({
-      id: tx.id, type: tx.type, amount: tx.amount, category: tx.category,
-      description: tx.description, date: tx.date, person: tx.person, status: tx.status,
+      id:           tx.id,
+      type:         BUDGET_TYPE_TO_DB[tx.type] ?? tx.type,
+      montant:      tx.amount,
+      categorie:    tx.category,
+      description:  tx.description,
+      date:         tx.date,
+      pret_personne: tx.person,
+      pret_statut:  tx.status,
     }).then(({ error }) => {
       if (error) { fail("budget_entries.insert", error); return; }
       console.log("[db] budget_entries: insert ok");
@@ -137,7 +160,7 @@ export const budgetEntries = {
 
   updateStatus(id, status) {
     console.log(`[db] budget_entries: updateStatus id=${id} → ${status}`);
-    supabase.from("budget_entries").update({ status }).eq("id", id)
+    supabase.from("budget_entries").update({ pret_statut: status }).eq("id", id)
       .then(({ error }) => {
         if (error) { fail("budget_entries.updateStatus", error); return; }
         console.log("[db] budget_entries: updateStatus ok");
@@ -146,7 +169,7 @@ export const budgetEntries = {
       .catch((err) => fail("budget_entries.updateStatus", err));
   },
 
-  // Returns an unsubscribe function
+  // Callback receives already-mapped app objects (not raw DB rows)
   subscribe(callback) {
     console.log("[db] budget_entries: subscribing to real-time");
     const channel = supabase
@@ -156,7 +179,11 @@ export const budgetEntries = {
         { event: "*", schema: "public", table: "budget_entries" },
         (payload) => {
           console.log(`[db] budget_entries: realtime ${payload.eventType}`, payload.new ?? payload.old);
-          callback(payload);
+          callback({
+            eventType: payload.eventType,
+            new: payload.new ? mapBudgetRow(payload.new) : null,
+            old: payload.old ?? null,
+          });
         }
       )
       .subscribe((status) => {
@@ -171,21 +198,22 @@ export const budgetEntries = {
 };
 
 // ── alarms ────────────────────────────────────────────────────────────────────
+// DB columns : profile_id, enabled (not is_active), is_custom
 export const alarmsDb = {
   async getState(profile) {
-    console.log(`[db] alarms: fetching profile=${profile}`);
+    console.log(`[db] alarms: fetching profile_id=${profile}`);
     try {
       const { data, error } = await supabase
         .from("alarms")
         .select("*")
-        .eq("profile", profile);
+        .eq("profile_id", profile);
       if (error) throw error;
       ok();
       console.log(`[db] alarms: got ${data.length} rows`);
       const active = {};
       const custom = [];
       data.forEach((row) => {
-        if (row.is_active) active[row.id] = true;
+        if (row.enabled) active[row.id] = true;
         if (row.is_custom) custom.push({ id: row.id, label: row.label, time: row.time, description: row.description });
       });
       return { active, custom };
@@ -196,11 +224,11 @@ export const alarmsDb = {
   },
 
   setActive(profile, alarmId, isActive, alarmData = {}) {
-    console.log(`[db] alarms: setActive profile=${profile} id=${alarmId} active=${isActive}`);
+    console.log(`[db] alarms: setActive profile_id=${profile} id=${alarmId} enabled=${isActive}`);
     supabase.from("alarms")
       .upsert(
-        { id: alarmId, profile, is_active: isActive, label: alarmData.label, time: alarmData.time, description: alarmData.description, is_custom: false },
-        { onConflict: "id,profile" }
+        { id: alarmId, profile_id: profile, enabled: isActive, label: alarmData.label, time: alarmData.time, description: alarmData.description, is_custom: false },
+        { onConflict: "id,profile_id" }
       )
       .then(({ error }) => {
         if (error) { fail("alarms.setActive", error); return; }
@@ -211,10 +239,10 @@ export const alarmsDb = {
   },
 
   addCustom(profile, alarm) {
-    console.log(`[db] alarms: addCustom profile=${profile} id=${alarm.id}`);
+    console.log(`[db] alarms: addCustom profile_id=${profile} id=${alarm.id}`);
     supabase.from("alarms").insert({
-      id: alarm.id, profile, label: alarm.label, time: alarm.time,
-      description: alarm.description, is_custom: true, is_active: false,
+      id: alarm.id, profile_id: profile, label: alarm.label, time: alarm.time,
+      description: alarm.description, is_custom: true, enabled: false,
     }).then(({ error }) => {
       if (error) { fail("alarms.addCustom", error); return; }
       console.log("[db] alarms: addCustom ok");
@@ -223,8 +251,8 @@ export const alarmsDb = {
   },
 
   deleteCustom(profile, alarmId) {
-    console.log(`[db] alarms: deleteCustom profile=${profile} id=${alarmId}`);
-    supabase.from("alarms").delete().eq("id", alarmId).eq("profile", profile)
+    console.log(`[db] alarms: deleteCustom profile_id=${profile} id=${alarmId}`);
+    supabase.from("alarms").delete().eq("id", alarmId).eq("profile_id", profile)
       .then(({ error }) => {
         if (error) { fail("alarms.deleteCustom", error); return; }
         console.log("[db] alarms: deleteCustom ok");
@@ -236,7 +264,6 @@ export const alarmsDb = {
 
 // ── profiles ──────────────────────────────────────────────────────────────────
 export const profilesDb = {
-  // Ensures adam and andrea rows exist without overwriting existing data
   async ensureExists() {
     console.log("[db] profiles: ensuring adam & andrea exist");
     try {
@@ -254,7 +281,7 @@ export const profilesDb = {
   },
 
   async get(profile) {
-    console.log(`[db] profiles: fetching profile=${profile}`);
+    console.log(`[db] profiles: fetching id=${profile}`);
     try {
       const { data, error } = await supabase
         .from("profiles")
@@ -266,8 +293,8 @@ export const profilesDb = {
       console.log(`[db] profiles: fetched`, { sportTime: data.sport_time, height: data.height });
       return {
         sportTime: data.sport_time || "morning",
-        height: data.height || null,
-        targets: data.targets || {},
+        height:    data.height || null,
+        targets:   data.targets || {},
       };
     } catch (err) {
       fail("profiles.get", err);
@@ -276,7 +303,7 @@ export const profilesDb = {
   },
 
   upsert(profile, fields) {
-    console.log(`[db] profiles: upsert profile=${profile}`, fields);
+    console.log(`[db] profiles: upsert id=${profile}`, fields);
     supabase.from("profiles")
       .upsert({ id: profile, ...fields, updated_at: new Date().toISOString() }, { onConflict: "id" })
       .then(({ error }) => {
