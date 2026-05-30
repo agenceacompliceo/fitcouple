@@ -7,12 +7,62 @@ import BodyTracking from "./components/BodyTracking";
 import Alarms from "./components/Alarms";
 import Budget from "./components/Budget";
 import BottomNav from "./components/BottomNav";
+import { IconX, IconSettings } from "@tabler/icons-react";
 import "./App.css";
 
+function SettingsSheet({ onClose }) {
+  const { profile, logout, sportTime, setSportTime } = useProfile();
+
+  return (
+    <div className="sheet-overlay" onClick={onClose}>
+      <div className="settings-sheet" onClick={(e) => e.stopPropagation()}>
+        <div className="sheet-handle" />
+        <div className="sheet-header">
+          <span className="sheet-title">{profile === "adam" ? "Adam" : "Andréa"}</span>
+          <button className="btn-ghost" onClick={onClose}>
+            <IconX size={20} stroke={1.5} />
+          </button>
+        </div>
+
+        <div className="settings-section">
+          <label className="settings-label">Heure de sport</label>
+          <div className="sport-time-toggle">
+            <button
+              className={`sport-time-btn ${sportTime === "morning" ? "active" : ""}`}
+              onClick={() => setSportTime("morning")}
+            >
+              Matin (11h)
+            </button>
+            <button
+              className={`sport-time-btn ${sportTime === "afternoon" ? "active" : ""}`}
+              onClick={() => setSportTime("afternoon")}
+            >
+              Après-midi (15h)
+            </button>
+          </div>
+          <p className="settings-hint">
+            {sportTime === "morning"
+              ? "Booster 10h30, séance 11h, repas post 12h30"
+              : "Collation 14h15, booster 14h30, séance 15h, repas post 16h15"}
+          </p>
+        </div>
+
+        <button
+          className="btn-secondary settings-logout"
+          onClick={() => { logout(); onClose(); }}
+        >
+          Changer de profil
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AppContent() {
-  const { profile, logout } = useProfile();
+  const { profile } = useProfile();
   const [tab, setTab] = useState("dashboard");
   const [exerciseSession, setExerciseSession] = useState(null);
+  const [showSettings, setShowSettings] = useState(false);
 
   if (!profile) return <ProfileSelect />;
 
@@ -26,12 +76,14 @@ function AppContent() {
     setTab(newTab);
   };
 
+  const displayName = profile === "adam" ? "Adam" : "Andréa";
+
   return (
     <div className="app-shell">
       <header className="top-bar">
-        <span className="top-bar-logo">FitCouple</span>
-        <button className="top-bar-profile" onClick={logout}>
-          {profile === "adam" ? "Adam" : "Andréa"}
+        <span className="top-bar-name">{displayName}</span>
+        <button className="btn-ghost top-bar-settings" onClick={() => setShowSettings(true)}>
+          <IconSettings size={20} stroke={1.5} />
         </button>
       </header>
 
@@ -44,6 +96,8 @@ function AppContent() {
       </main>
 
       <BottomNav active={tab} onChange={handleTabChange} />
+
+      {showSettings && <SettingsSheet onClose={() => setShowSettings(false)} />}
     </div>
   );
 }

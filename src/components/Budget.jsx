@@ -5,7 +5,6 @@ import {
 } from "@tabler/icons-react";
 
 const BUDGET_KEY = "fitcouple_budget";
-const GROCERY_TARGET = 250;
 
 const CATEGORIES = {
   income: ["Salaire", "Freelance", "Autre"],
@@ -60,7 +59,6 @@ export default function Budget() {
 
   const monthlyIncome = byMonth("income").reduce((s, t) => s + t.amount, 0);
   const monthlyExpense = byMonth("expense").reduce((s, t) => s + t.amount, 0);
-  const groceries = byMonth("expense").filter((t) => t.category === "Courses").reduce((s, t) => s + t.amount, 0);
   const balance = monthlyIncome - monthlyExpense;
 
   const allLoans = transactions.filter((t) => t.type === "loan");
@@ -93,8 +91,6 @@ export default function Budget() {
     setTransactions((prev) =>
       prev.map((t) => t.id === id ? { ...t, status: t.status === "pending" ? "repaid" : "pending" } : t)
     );
-
-  const groceryPct = Math.min(100, Math.round((groceries / GROCERY_TARGET) * 100));
 
   return (
     <div className="screen">
@@ -130,21 +126,6 @@ export default function Budget() {
           <span className="bstat-label">Dépenses</span>
           <span className="bstat-value expense">{fmtAmount(monthlyExpense)}</span>
         </div>
-      </div>
-
-      {/* Grocery progress */}
-      <div className="card grocery-card">
-        <div className="grocery-header">
-          <span className="grocery-label">Budget courses</span>
-          <span className="grocery-amounts">{fmtAmount(groceries)} / {fmtAmount(GROCERY_TARGET)}</span>
-        </div>
-        <div className="progress-bar">
-          <div
-            className="progress-fill"
-            style={{ width: `${groceryPct}%`, backgroundColor: groceryPct >= 90 ? "#e53e3e" : groceryPct >= 70 ? "#d69e2e" : "#111" }}
-          />
-        </div>
-        <span className="grocery-pct">{groceryPct}%</span>
       </div>
 
       {/* Add form */}

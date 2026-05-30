@@ -10,10 +10,7 @@ export default function ProfileSelect() {
 
   return (
     <div className="profile-select">
-      <div className="app-hero">
-        <h1 className="app-title">FitCouple</h1>
-        <p className="app-sub">Deux profils. Un programme. Des résultats.</p>
-      </div>
+      <p className="profile-select-sub">Qui s'entraîne aujourd'hui ?</p>
 
       <div className="profile-cards">
         {[

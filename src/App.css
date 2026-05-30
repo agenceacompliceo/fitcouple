@@ -63,24 +63,16 @@ html, body, #root {
   z-index: 20;
 }
 
-.top-bar-logo {
-  font-size: 16px;
+.top-bar-name {
+  font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--text);
 }
 
-.top-bar-profile {
-  background: none;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-full);
-  padding: 5px 14px;
-  font-size: 13px;
-  color: var(--text-dim);
-  transition: border-color 0.15s;
+.top-bar-settings {
+  padding: 6px;
 }
-
-.top-bar-profile:hover { border-color: #bbb; color: var(--text); }
 
 /* ── Main Content ── */
 .main-content {
@@ -292,24 +284,15 @@ html, body, #root {
   align-items: center;
   justify-content: center;
   padding: 32px 20px;
-  gap: 36px;
+  gap: 28px;
   max-width: 480px;
   margin: 0 auto;
 }
 
-.app-hero { text-align: center; }
-
-.app-title {
-  font-size: 38px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
-  color: var(--text);
-}
-
-.app-sub {
-  font-size: 14px;
+.profile-select-sub {
+  font-size: 15px;
   color: var(--text-muted);
-  margin-top: 6px;
+  font-weight: 500;
 }
 
 .profile-cards {
@@ -1053,3 +1036,111 @@ html, body, #root {
 .transaction-row.expense .tx-amount { color: var(--danger); }
 .transaction-row.loan .tx-amount { color: var(--warning); }
 .tx-date { font-size: 11px; color: var(--text-muted); }
+
+/* ── Today Chip Rest State ── */
+.today-chip.rest {
+  background: var(--surface2);
+  color: var(--text-muted);
+  border-color: var(--surface2);
+}
+
+/* ── Rest Slot ── */
+.timeline-item.rest-slot .tl-label { font-style: italic; color: var(--text-dim); }
+.timeline-item.rest-slot .tl-icon { color: var(--success); }
+.timeline-item.rest-slot .tl-dot { background: #c6f6d5; border-color: #9ae6b4; }
+.timeline-item.rest-slot.current .tl-dot { background: var(--success); border-color: var(--success); }
+
+/* ── Settings Bottom Sheet ── */
+.sheet-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.settings-sheet {
+  background: var(--bg);
+  border-radius: 16px 16px 0 0;
+  padding: 12px 20px 32px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.12);
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.sheet-handle {
+  width: 36px;
+  height: 4px;
+  background: var(--border);
+  border-radius: var(--radius-full);
+  margin: 0 auto 18px;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.sheet-title {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.settings-section {
+  margin-bottom: 24px;
+}
+
+.settings-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.sport-time-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.sport-time-btn {
+  padding: 11px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dim);
+  transition: all 0.15s;
+}
+
+.sport-time-btn.active {
+  background: var(--text);
+  color: #fff;
+  border-color: var(--text);
+}
+
+.settings-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.settings-logout {
+  margin-top: 8px;
+}
