@@ -6,6 +6,7 @@ import Exercises from "./components/Exercises";
 import BodyTracking from "./components/BodyTracking";
 import Alarms from "./components/Alarms";
 import Budget from "./components/Budget";
+import Timer from "./components/Timer";
 import BottomNav from "./components/BottomNav";
 import { IconX, IconSettings, IconCloudCheck, IconCloudOff, IconSwitchHorizontal } from "@tabler/icons-react";
 import { syncStatus, checkConnection, profilesDb } from "./lib/db";
@@ -143,6 +144,7 @@ function AppContent() {
         {tab === "body" && <BodyTracking />}
         {tab === "alarms" && <Alarms />}
         {tab === "budget" && <Budget />}
+        {tab === "timer" && <Timer />}
       </main>
 
       <BottomNav active={tab} onChange={handleTabChange} />

@@ -1,14 +1,14 @@
 import { useProfile } from "../context/ProfileContext";
 import {
   IconLayoutDashboard, IconBarbell, IconRuler2,
-  IconBell, IconWallet,
+  IconBell, IconWallet, IconStopwatch,
 } from "@tabler/icons-react";
 
 const TABS = [
   { id: "dashboard", label: "Accueil", Icon: IconLayoutDashboard },
   { id: "exercises", label: "Sport", Icon: IconBarbell },
+  { id: "timer", label: "Chrono", Icon: IconStopwatch },
   { id: "body", label: "Suivi", Icon: IconRuler2 },
-  { id: "alarms", label: "Rappels", Icon: IconBell },
   { id: "budget", label: "Budget", Icon: IconWallet },
 ];
 
