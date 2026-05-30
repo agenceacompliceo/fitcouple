@@ -586,6 +586,11 @@ html, body, #root {
 .tl-dot.type-supplement { background: var(--surface2); border-color: #ddd; }
 .tl-dot.type-skincare { background: var(--surface2); border-color: #ddd; }
 .tl-dot.type-routine { background: transparent; border-color: #ccc; }
+.tl-dot.type-skin { background: var(--surface2); border-color: #f0c8d0; }
+.tl-dot.type-supp { background: var(--surface2); border-color: #ddd; }
+.tl-dot.type-pdj { background: var(--surface2); border-color: #ccc; }
+.tl-dot.type-food { background: var(--surface2); border-color: #ccc; }
+.tl-dot.type-rest { background: transparent; border-color: #9ae6b4; }
 .tl-dot.current { background: var(--text) !important; border-color: var(--text) !important; box-shadow: 0 0 0 3px rgba(0,0,0,0.1); }
 
 .tl-content {
