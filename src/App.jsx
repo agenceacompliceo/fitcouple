@@ -9,6 +9,7 @@ import Budget from "./components/Budget";
 import BottomNav from "./components/BottomNav";
 import { IconX, IconSettings, IconCloudCheck, IconCloudOff } from "@tabler/icons-react";
 import { syncStatus, checkConnection, profilesDb } from "./lib/db";
+import { supabase } from "./lib/supabase";
 import "./App.css";
 
 function SettingsSheet({ onClose }) {
@@ -67,6 +68,12 @@ function AppContent() {
   const [sync, setSync] = useState(syncStatus.get());
 
   useEffect(() => {
+    // Debug: verify Supabase credentials and connectivity
+    supabase.from('profiles').select('*').then(({ data, error }) => {
+      console.log('SUPABASE CONNECTION TEST:', { data, error });
+      console.log('URL:', import.meta.env.VITE_SUPABASE_URL);
+      console.log('KEY:', import.meta.env.VITE_SUPABASE_ANON_KEY?.substring(0, 20));
+    });
     profilesDb.ensureExists();
     checkConnection();
     return syncStatus.subscribe(setSync);
