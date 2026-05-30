@@ -15,38 +15,19 @@ export default function ProfileSelect() {
       fontFamily: 'system-ui, -apple-system, sans-serif'
     }}>
 
-      {/* Avatar illustration */}
+      {/* Photo du couple */}
       <div style={{ marginBottom: '2.5rem' }}>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 140 100" width="200" height="143">
-
-          {/* Adam (gauche) — plus grand, cheveux bouclés */}
-          <rect x="18" y="52" width="22" height="30" rx="5" fill="white"/>
-          <circle cx="29" cy="40" r="14" fill="#D4A574"/>
-          <circle cx="20" cy="33" r="7" fill="#2C1810"/>
-          <circle cx="29" cy="28" r="7" fill="#2C1810"/>
-          <circle cx="38" cy="33" r="7" fill="#2C1810"/>
-          <circle cx="21" cy="40" r="5" fill="#2C1810"/>
-          <circle cx="37" cy="40" r="5" fill="#2C1810"/>
-          <rect x="18" y="80" width="8" height="14" rx="3" fill="#333"/>
-          <rect x="32" y="80" width="8" height="14" rx="3" fill="#333"/>
-          <rect x="6" y="53" width="10" height="20" rx="4" fill="#D4A574"/>
-          <rect x="42" y="53" width="10" height="20" rx="4" fill="#D4A574"/>
-
-          {/* Andréa (droite) — plus petite, métisse, cheveux lisses */}
-          <rect x="88" y="58" width="20" height="26" rx="5" fill="white"/>
-          <circle cx="98" cy="48" r="12" fill="#C68642"/>
-          <rect x="84" y="36" width="28" height="30" rx="6" fill="#1a0a00"/>
-          <rect x="86" y="37" width="24" height="14" rx="5" fill="#C68642"/>
-          <rect x="81" y="50" width="6" height="22" rx="3" fill="#1a0a00"/>
-          <rect x="109" y="50" width="6" height="22" rx="3" fill="#1a0a00"/>
-          <rect x="88" y="82" width="7" height="12" rx="3" fill="#333"/>
-          <rect x="101" y="82" width="7" height="12" rx="3" fill="#333"/>
-          <rect x="78" y="59" width="9" height="18" rx="4" fill="#C68642"/>
-          <rect x="109" y="59" width="9" height="18" rx="4" fill="#C68642"/>
-
-          {/* Petit coeur entre les deux */}
-          <text x="65" y="68" fontSize="16" textAnchor="middle" fill="white">♥</text>
-        </svg>
+        <img
+          src="/couple.png"
+          alt="Adam & Andréa"
+          style={{
+            width: '100%',
+            maxWidth: '320px',
+            borderRadius: '16px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.18)',
+            display: 'block',
+          }}
+        />
       </div>
 
       {/* Titre */}
