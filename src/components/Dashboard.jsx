@@ -2,30 +2,40 @@ import { useProfile } from "../context/ProfileContext";
 import { adamSchedule, adamProgram, adamMacros } from "../data/adam";
 import { andreaSchedule, andreaProgram, andreaMacros } from "../data/andrea";
 import { motivationsAdam, motivationsAndrea } from "../data/motivations";
+import {
+  IconSun, IconMoon, IconPill, IconFlame, IconToolsKitchen2,
+  IconHeart, IconBarbell, IconArrowRight,
+} from "@tabler/icons-react";
 
 const DAYS = ["Dimanche", "Lundi", "Mardi", "Mercredi", "Jeudi", "Vendredi", "Samedi"];
-const MONTHS = [
-  "janvier", "février", "mars", "avril", "mai", "juin",
-  "juillet", "août", "septembre", "octobre", "novembre", "décembre"
-];
+const MONTHS = ["janvier", "février", "mars", "avril", "mai", "juin", "juillet", "août", "septembre", "octobre", "novembre", "décembre"];
 
-function getDailyMotivation(motivations) {
-  const day = new Date().getDay();
-  return motivations[day % motivations.length];
-}
-
-const PROGRAM_LABELS = {
-  push: "Push 💪",
-  pull: "Pull 🔙",
-  legs: "Legs 🦵",
-  rest: "Repos 😴",
-  glutes: "Fessiers 🍑",
-  hiit: "HIIT ⚡",
-  cardio: "Cardio 🏃",
+const ICON_MAP = {
+  sun: IconSun,
+  moon: IconMoon,
+  pill: IconPill,
+  bolt: IconFlame,
+  meal: IconToolsKitchen2,
+  heart: IconHeart,
+  dumbbell: IconBarbell,
 };
 
-export default function Dashboard() {
-  const { profile } = useProfile();
+const PROGRAM_LABELS = {
+  push: "Push",
+  pull: "Pull",
+  legs: "Legs",
+  rest: "Repos",
+  glutes: "Fessiers",
+  hiit: "HIIT",
+  cardio: "Cardio",
+};
+
+function getDailyMotivation(motivations) {
+  return motivations[new Date().getDay() % motivations.length];
+}
+
+export default function Dashboard({ onNavigateToExercises }) {
+  const { profile, logout } = useProfile();
   const isAdam = profile === "adam";
 
   const schedule = isAdam ? adamSchedule : andreaSchedule;
@@ -35,88 +45,80 @@ export default function Dashboard() {
 
   const now = new Date();
   const dayOfWeek = now.getDay();
-  const dayOfMonth = now.getDate();
-  const month = MONTHS[now.getMonth()];
-  const dayName = DAYS[dayOfWeek];
   const todayProgram = program[dayOfWeek % program.length];
-  const currentHour = now.getHours();
-  const currentMinutes = now.getMinutes();
+  const nowMinutes = now.getHours() * 60 + now.getMinutes();
 
-  const isCurrentSlot = (time) => {
-    const [h, m] = time.split(":").map(Number);
-    const slotMinutes = h * 60 + m;
-    const nowMinutes = currentHour * 60 + currentMinutes;
-    return nowMinutes >= slotMinutes && nowMinutes < slotMinutes + 90;
-  };
-
-  const isPast = (time) => {
-    const [h, m] = time.split(":").map(Number);
-    return currentHour * 60 + currentMinutes > h * 60 + m + 90;
-  };
+  const slotMinutes = (time) => { const [h, m] = time.split(":").map(Number); return h * 60 + m; };
+  const isCurrentSlot = (time) => { const sm = slotMinutes(time); return nowMinutes >= sm && nowMinutes < sm + 90; };
+  const isPast = (time) => nowMinutes > slotMinutes(time) + 90;
 
   return (
     <div className="screen">
       <div className="dashboard-header">
-        <div className="date-block">
-          <span className="day-name">{dayName}</span>
-          <span className="day-date">{dayOfMonth} {month}</span>
+        <div>
+          <div className="day-name">{DAYS[dayOfWeek]}</div>
+          <div className="day-date">{now.getDate()} {MONTHS[now.getMonth()]}</div>
         </div>
-        <div className="today-program">
-          <span className="program-label">Aujourd'hui</span>
-          <span className="program-type">{PROGRAM_LABELS[todayProgram]}</span>
-        </div>
-      </div>
-
-      <div className="motivation-banner">
-        <p>"{getDailyMotivation(motivations)}"</p>
-      </div>
-
-      <div className="macros-strip">
-        <div className="macro-item">
-          <span className="macro-value">{macros.calories}</span>
-          <span className="macro-label">kcal</span>
-        </div>
-        <div className="macro-sep">|</div>
-        <div className="macro-item">
-          <span className="macro-value">{macros.protein}g</span>
-          <span className="macro-label">protéines</span>
-        </div>
-        <div className="macro-sep">|</div>
-        <div className="macro-item">
-          <span className="macro-value">{macros.carbs}g</span>
-          <span className="macro-label">glucides</span>
-        </div>
-        <div className="macro-sep">|</div>
-        <div className="macro-item">
-          <span className="macro-value">{macros.fat}g</span>
-          <span className="macro-label">lipides</span>
+        <div className="today-chip">
+          {PROGRAM_LABELS[todayProgram]}
         </div>
       </div>
 
-      <h2 className="section-title">Planning du jour</h2>
+      <div className="motivation-card">
+        <p>{getDailyMotivation(motivations)}</p>
+      </div>
+
+      <div className="macros-grid">
+        {[
+          { label: "kcal", value: macros.calories },
+          { label: "protéines", value: `${macros.protein}g` },
+          { label: "glucides", value: `${macros.carbs}g` },
+          { label: "lipides", value: `${macros.fat}g` },
+        ].map(({ label, value }) => (
+          <div key={label} className="macro-cell">
+            <span className="macro-val">{value}</span>
+            <span className="macro-lbl">{label}</span>
+          </div>
+        ))}
+      </div>
+
+      <h3 className="section-title">Planning du jour</h3>
 
       <div className="timeline">
         {schedule.map((slot, i) => {
           const current = isCurrentSlot(slot.time);
           const past = isPast(slot.time);
-          return (
-            <div
-              key={i}
-              className={`timeline-item ${current ? "current" : ""} ${past ? "past" : ""} type-${slot.type}`}
-            >
-              <div className="timeline-time">
-                <span className="time-label">{slot.time}</span>
-                {current && <span className="now-dot" />}
+          const Icon = ICON_MAP[slot.iconType] || IconSun;
+          const isSport = slot.type === "sport" && todayProgram !== "rest";
+
+          const content = (
+            <div className={`timeline-item ${current ? "current" : ""} ${past ? "past" : ""}`}>
+              <div className="tl-time">
+                <span>{slot.time}</span>
+                {current && <span className="now-pill">Maintenant</span>}
               </div>
-              <div className="timeline-content">
-                <div className="timeline-icon">{slot.icon}</div>
-                <div className="timeline-text">
-                  <span className="timeline-label">{slot.label}</span>
-                  {slot.detail && <span className="timeline-detail">{slot.detail}</span>}
+              <div className={`tl-dot type-${slot.type} ${current ? "current" : ""}`} />
+              <div className="tl-content">
+                <div className="tl-icon">
+                  <Icon size={16} stroke={1.5} />
                 </div>
+                <div className="tl-text">
+                  <span className="tl-label">{slot.label}</span>
+                  {slot.detail && <span className="tl-detail">{slot.detail}</span>}
+                </div>
+                {isSport && <IconArrowRight size={16} stroke={1.5} className="tl-arrow" />}
               </div>
             </div>
           );
+
+          if (isSport) {
+            return (
+              <button key={i} className="timeline-btn" onClick={() => onNavigateToExercises(todayProgram)}>
+                {content}
+              </button>
+            );
+          }
+          return <div key={i}>{content}</div>;
         })}
       </div>
     </div>

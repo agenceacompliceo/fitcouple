@@ -1,31 +1,30 @@
 import { useProfile } from "../context/ProfileContext";
+import {
+  IconLayoutDashboard, IconBarbell, IconRuler2,
+  IconBell, IconWallet,
+} from "@tabler/icons-react";
 
 const TABS = [
-  { id: "dashboard", label: "Accueil", icon: "🏠" },
-  { id: "exercises", label: "Exercices", icon: "💪" },
-  { id: "bmi", label: "IMC", icon: "📊" },
-  { id: "alarms", label: "Alarmes", icon: "🔔" },
+  { id: "dashboard", label: "Accueil", Icon: IconLayoutDashboard },
+  { id: "exercises", label: "Sport", Icon: IconBarbell },
+  { id: "body", label: "Suivi", Icon: IconRuler2 },
+  { id: "alarms", label: "Rappels", Icon: IconBell },
+  { id: "budget", label: "Budget", Icon: IconWallet },
 ];
 
 export default function BottomNav({ active, onChange }) {
-  const { profile, logout } = useProfile();
-
   return (
     <nav className="bottom-nav">
-      {TABS.map((tab) => (
+      {TABS.map(({ id, label, Icon }) => (
         <button
-          key={tab.id}
-          className={`nav-item ${active === tab.id ? "active" : ""}`}
-          onClick={() => onChange(tab.id)}
+          key={id}
+          className={`nav-item ${active === id ? "active" : ""}`}
+          onClick={() => onChange(id)}
         >
-          <span className="nav-icon">{tab.icon}</span>
-          <span className="nav-label">{tab.label}</span>
+          <Icon size={22} stroke={active === id ? 2 : 1.5} />
+          <span className="nav-label">{label}</span>
         </button>
       ))}
-      <button className="nav-item" onClick={logout} title="Changer de profil">
-        <span className="nav-icon">👤</span>
-        <span className="nav-label">{profile === "adam" ? "Adam" : "Andréa"}</span>
-      </button>
     </nav>
   );
 }

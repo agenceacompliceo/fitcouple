@@ -1,75 +1,94 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useProfile } from "../context/ProfileContext";
 import { adamExercises, adamProgram } from "../data/adam";
 import { andreaExercises, andreaProgram } from "../data/andrea";
+import {
+  IconChevronDown, IconChevronUp, IconBrandYoutube, IconCheck,
+} from "@tabler/icons-react";
 
 const DAYS_SHORT = ["Dim", "Lun", "Mar", "Mer", "Jeu", "Ven", "Sam"];
 
-export default function Exercises() {
+export default function Exercises({ defaultSession }) {
   const { profile } = useProfile();
   const isAdam = profile === "adam";
 
   const exercises = isAdam ? adamExercises : andreaExercises;
   const program = isAdam ? adamProgram : andreaProgram;
+  const workoutKeys = Object.keys(exercises);
+
   const todayIdx = new Date().getDay();
   const todayWorkout = program[todayIdx % program.length];
 
-  const workoutKeys = Object.keys(exercises);
-  const [selected, setSelected] = useState(
-    workoutKeys.includes(todayWorkout) ? todayWorkout : workoutKeys[0]
-  );
+  const [selected, setSelected] = useState(() => {
+    if (defaultSession && workoutKeys.includes(defaultSession)) return defaultSession;
+    if (workoutKeys.includes(todayWorkout)) return todayWorkout;
+    return workoutKeys[0];
+  });
   const [expanded, setExpanded] = useState(null);
+  const [done, setDone] = useState({});
+
+  useEffect(() => {
+    if (defaultSession && workoutKeys.includes(defaultSession)) {
+      setSelected(defaultSession);
+      setExpanded(null);
+    }
+  }, [defaultSession]);
+
+  const toggleDone = (idx) => setDone((d) => ({ ...d, [idx]: !d[idx] }));
 
   const current = exercises[selected];
 
   return (
     <div className="screen">
-      <h2 className="section-title">Exercices</h2>
+      <h2 className="page-title">Exercices</h2>
 
-      <div className="today-banner">
-        Programme du jour :{" "}
-        <strong>{todayWorkout === "rest" ? "Repos 😴" : (exercises[todayWorkout]?.label || "Repos 😴")}</strong>
-      </div>
+      {todayWorkout !== "rest" && exercises[todayWorkout] ? (
+        <div className="today-banner">
+          Aujourd'hui : <strong>{exercises[todayWorkout].label.split(" — ")[0]}</strong>
+        </div>
+      ) : (
+        <div className="today-banner rest">Aujourd'hui : Repos — récupération active</div>
+      )}
 
       <div className="workout-tabs">
         {workoutKeys.map((key) => (
           <button
             key={key}
             className={`workout-tab ${selected === key ? "active" : ""}`}
-            onClick={() => { setSelected(key); setExpanded(null); }}
+            onClick={() => { setSelected(key); setExpanded(null); setDone({}); }}
           >
             {exercises[key].label.split(" — ")[0]}
           </button>
         ))}
       </div>
 
-      <div className="session-title">{current.label}</div>
+      <div className="session-header">
+        <span className="session-label">{current.label}</span>
+        <span className="session-count">{Object.values(done).filter(Boolean).length}/{current.exercises.length}</span>
+      </div>
 
       <div className="exercise-list">
         {current.exercises.map((ex, i) => (
-          <div key={i} className="exercise-card">
-            <button
-              className="exercise-header"
-              onClick={() => setExpanded(expanded === i ? null : i)}
-            >
-              <div className="exercise-number">{String(i + 1).padStart(2, "0")}</div>
-              <div className="exercise-info">
-                <span className="exercise-name">{ex.name}</span>
-                <span className="exercise-sets">{ex.sets}</span>
+          <div key={i} className={`exercise-card ${done[i] ? "done" : ""}`}>
+            <button className="exercise-header" onClick={() => setExpanded(expanded === i ? null : i)}>
+              <button
+                className={`ex-check ${done[i] ? "checked" : ""}`}
+                onClick={(e) => { e.stopPropagation(); toggleDone(i); }}
+              >
+                {done[i] && <IconCheck size={12} stroke={2.5} />}
+              </button>
+              <div className="ex-info">
+                <span className="ex-name">{ex.name}</span>
+                <span className="ex-sets">{ex.sets}</span>
               </div>
-              <span className="exercise-chevron">{expanded === i ? "▲" : "▼"}</span>
+              {expanded === i ? <IconChevronUp size={16} stroke={1.5} /> : <IconChevronDown size={16} stroke={1.5} />}
             </button>
-
             {expanded === i && (
               <div className="exercise-body">
-                <p className="exercise-tip">💡 {ex.tip}</p>
-                <a
-                  href={ex.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="yt-link"
-                >
-                  ▶ Voir la vidéo YouTube
+                <p className="ex-tip">{ex.tip}</p>
+                <a href={ex.url} target="_blank" rel="noopener noreferrer" className="yt-link">
+                  <IconBrandYoutube size={16} stroke={1.5} />
+                  Voir la démonstration
                 </a>
               </div>
             )}
@@ -85,12 +104,14 @@ export default function Exercises() {
             const isToday = i === todayIdx;
             const isRest = workout === "rest";
             return (
-              <div key={i} className={`weekly-day ${isToday ? "today" : ""} ${isRest ? "rest" : ""}`}>
-                <span className="weekly-day-name">{day}</span>
-                <span className="weekly-day-workout">
-                  {isRest ? "Repos" : (exercises[workout]?.label.split(" — ")[0] || "?")}
-                </span>
-              </div>
+              <button
+                key={i}
+                className={`weekly-day ${isToday ? "today" : ""} ${isRest ? "rest" : ""}`}
+                onClick={() => { if (!isRest && workoutKeys.includes(workout)) { setSelected(workout); setExpanded(null); }}}
+              >
+                <span className="wd-name">{day}</span>
+                <span className="wd-workout">{isRest ? "Repos" : (exercises[workout]?.label.split(" — ")[0] ?? "")}</span>
+              </button>
             );
           })}
         </div>

@@ -1,75 +1,75 @@
 export const andreaSchedule = [
-  { time: "08:30", label: "Réveil", icon: "☀️", type: "routine" },
+  { time: "08:30", label: "Réveil", iconType: "sun", type: "routine" },
   {
     time: "08:45",
     label: "Skincare matin",
-    icon: "✨",
+    iconType: "heart",
     type: "skincare",
     detail: "Nettoyant doux, sérum vitamine C, hydratant SPF 30+",
   },
   {
     time: "09:00",
     label: "Petit déjeuner",
-    icon: "🥣",
+    iconType: "meal",
     type: "meal",
     detail: "Porridge avoine, fruits rouges, 20g whey ou 2 œufs, café/thé",
   },
   {
     time: "09:00",
     label: "Compléments matin",
-    icon: "💊",
+    iconType: "pill",
     type: "supplement",
     detail: "Collagène marin 10g, Vitamine C 500mg, Oméga-3 1g, Biotine",
   },
   {
     time: "10:30",
     label: "Booster pré-workout",
-    icon: "⚡",
+    iconType: "bolt",
     type: "supplement",
     detail: "Café noir ou booster léger + BCAA 5g",
   },
-  { time: "11:00", label: "Séance de sport", icon: "🍑", type: "sport", detail: "Voir programme du jour" },
+  { time: "11:00", label: "Séance de sport", iconType: "dumbbell", type: "sport", detail: "Voir programme du jour" },
   {
     time: "12:30",
     label: "Déjeuner post-workout",
-    icon: "🥗",
+    iconType: "meal",
     type: "meal",
     detail: "150g poulet ou thon, salade verte, avocat, légumes colorés",
   },
   {
     time: "15:30",
     label: "Collation",
-    icon: "🍓",
+    iconType: "meal",
     type: "meal",
     detail: "Fromage blanc 0%, fruits rouges, poignée d'amandes",
   },
   {
     time: "19:00",
     label: "Dîner",
-    icon: "🐟",
+    iconType: "meal",
     type: "meal",
     detail: "Poisson blanc ou œufs, légumes vapeur, patate douce (si sport)",
   },
   {
     time: "21:00",
     label: "Skincare soir",
-    icon: "🌙",
+    iconType: "heart",
     type: "skincare",
     detail: "Démaquillage, nettoyant, acide hyaluronique, crème nuit riche",
   },
   {
     time: "21:30",
     label: "Compléments soir",
-    icon: "💊",
+    iconType: "pill",
     type: "supplement",
     detail: "Magnésium bisglycinate 300mg, Mélatonine 0.5mg (si besoin)",
   },
-  { time: "23:00", label: "Coucher", icon: "💤", type: "routine" },
+  { time: "23:00", label: "Coucher", iconType: "moon", type: "routine" },
 ];
 
 export const andreaExercises = {
   glutes: {
-    label: "Fessiers — Focus Gluteus Maximus & Médius",
+    label: "Fessiers — Gluteus Maximus & Médius",
     exercises: [
       {
         name: "Hip Thrust barre",
@@ -116,13 +116,13 @@ export const andreaExercises = {
         name: "Burpees",
         sets: "4×20s on / 10s off",
         url: "https://www.youtube.com/watch?v=auBLPXO8Fww",
-        tip: "Qualité > vitesse sur les premiers rounds",
+        tip: "Qualité avant vitesse sur les premiers rounds",
       },
       {
         name: "Jump squats",
         sets: "4×20s",
         url: "https://www.youtube.com/watch?v=CVaEhXotL7M",
-        tip: "Reception douce, genoux fléchis",
+        tip: "Réception douce, genoux fléchis",
       },
       {
         name: "Mountain climbers",
@@ -194,26 +194,10 @@ export const andreaExercises = {
 };
 
 export const andreaProgram = ["glutes", "cardio", "hiit", "rest", "glutes", "hiit", "cardio"];
-export const andreaRestDays = [3];
 
 export const andreaMacros = {
   calories: 1800,
   protein: 140,
   carbs: 160,
   fat: 65,
-};
-
-export const andreaSkincare = {
-  morning: [
-    { step: 1, product: "Nettoyant doux moussant", time: "30s" },
-    { step: 2, product: "Eau micellaire (si maquillage)", time: "1 min" },
-    { step: 3, product: "Sérum vitamine C", time: "Absorber 1 min" },
-    { step: 4, product: "Hydratant SPF 30+", time: "Masser 1 min" },
-  ],
-  evening: [
-    { step: 1, product: "Huile démaquillante", time: "2 min" },
-    { step: 2, product: "Nettoyant doux (double nettoyage)", time: "1 min" },
-    { step: 3, product: "Acide hyaluronique", time: "Absorber 2 min" },
-    { step: 4, product: "Crème nuit réparatrice", time: "Masser 2 min" },
-  ],
 };

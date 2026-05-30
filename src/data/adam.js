@@ -1,56 +1,56 @@
 export const adamSchedule = [
-  { time: "08:30", label: "Réveil", icon: "☀️", type: "routine" },
+  { time: "08:30", label: "Réveil", iconType: "sun", type: "routine" },
   {
     time: "08:45",
     label: "Petit déjeuner",
-    icon: "🍳",
+    iconType: "meal",
     type: "meal",
     detail: "4 œufs brouillés, 100g flocons d'avoine, banane, 30g whey",
   },
   {
     time: "08:45",
     label: "Compléments matin",
-    icon: "💊",
+    iconType: "pill",
     type: "supplement",
     detail: "Créatine 5g, Oméga-3 2g, Vitamine D 2000UI",
   },
   {
     time: "10:30",
     label: "Booster pré-workout",
-    icon: "⚡",
+    iconType: "bolt",
     type: "supplement",
     detail: "Booster + 5g BCAA dans eau froide",
   },
-  { time: "11:00", label: "Séance de sport", icon: "🏋️", type: "sport", detail: "Voir programme du jour" },
+  { time: "11:00", label: "Séance de sport", iconType: "dumbbell", type: "sport", detail: "Voir programme du jour" },
   {
     time: "12:30",
     label: "Déjeuner post-workout",
-    icon: "🍗",
+    iconType: "meal",
     type: "meal",
     detail: "200g poulet/saumon, 200g riz, légumes verts, 30g whey",
   },
   {
     time: "15:00",
     label: "Collation",
-    icon: "🥜",
+    iconType: "meal",
     type: "meal",
     detail: "200g fromage blanc 0%, 30g amandes, pomme",
   },
   {
     time: "19:00",
     label: "Dîner",
-    icon: "🥩",
+    iconType: "meal",
     type: "meal",
     detail: "200g viande rouge ou œufs, patate douce, salade",
   },
   {
     time: "20:00",
     label: "Compléments soir",
-    icon: "💊",
+    iconType: "pill",
     type: "supplement",
     detail: "ZMA ou Magnésium, 30g caséine si faim",
   },
-  { time: "23:00", label: "Coucher", icon: "🌙", type: "routine" },
+  { time: "23:00", label: "Coucher", iconType: "moon", type: "routine" },
 ];
 
 export const adamExercises = {
@@ -180,7 +180,6 @@ export const adamExercises = {
 };
 
 export const adamProgram = ["push", "pull", "legs", "rest", "push", "pull", "legs"];
-export const adamRestDays = [3];
 
 export const adamMacros = {
   calories: 3200,

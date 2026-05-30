@@ -1,176 +1,156 @@
 import { useState, useEffect } from "react";
 import { useProfile } from "../context/ProfileContext";
+import { IconBell, IconBellOff, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 
-const STORAGE_KEY = "fitcouple_alarms";
+const KEY = "fitcouple_alarms_";
+const CUSTOM_KEY = "fitcouple_alarms_custom_";
 
 const PRESET_ALARMS = [
-  { id: "wake", label: "Réveil", time: "08:30", icon: "☀️", description: "C'est l'heure de se lever !" },
-  { id: "supplements", label: "Compléments matin", time: "08:45", icon: "💊", description: "Prends tes compléments du matin." },
-  { id: "booster", label: "Booster pré-workout", time: "10:30", icon: "⚡", description: "Prépare ton booster, entraînement dans 30 min !" },
-  { id: "sleep", label: "Coucher", time: "23:00", icon: "🌙", description: "Temps de récupérer. À demain !" },
+  { id: "wake", label: "Réveil", time: "08:30", description: "C'est l'heure de se lever !" },
+  { id: "supplements", label: "Compléments matin", time: "08:45", description: "Prends tes compléments du matin." },
+  { id: "booster", label: "Booster pré-workout", time: "10:30", description: "Prépare ton booster — entraînement dans 30 min !" },
+  { id: "body-tracking", label: "Mesures hebdo", time: "09:00", description: "C'est lundi — saisis tes mesures de la semaine !" },
+  { id: "sleep", label: "Coucher", time: "23:00", description: "Temps de récupérer. À demain !" },
 ];
 
-function getPermissionStatus() {
+function getPermission() {
   if (!("Notification" in window)) return "unsupported";
   return Notification.permission;
 }
 
-function scheduleNotification(alarm) {
-  const [hours, minutes] = alarm.time.split(":").map(Number);
+function scheduleNotif(alarm) {
+  const [h, m] = alarm.time.split(":").map(Number);
   const now = new Date();
   const target = new Date();
-  target.setHours(hours, minutes, 0, 0);
+  target.setHours(h, m, 0, 0);
   if (target <= now) target.setDate(target.getDate() + 1);
-  const delay = target.getTime() - now.getTime();
-  const timeoutId = setTimeout(() => {
+  return setTimeout(() => {
     if (Notification.permission === "granted") {
-      new Notification(`FitCouple — ${alarm.label}`, {
-        body: alarm.description,
-        icon: "/vite.svg",
-        badge: "/vite.svg",
-      });
+      new Notification(`FitCouple — ${alarm.label}`, { body: alarm.description });
     }
-  }, delay);
-  return timeoutId;
+  }, target - now);
 }
 
 export default function Alarms() {
   const { profile } = useProfile();
-  const [permission, setPermission] = useState(getPermissionStatus());
-  const [activeAlarms, setActiveAlarms] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY + "_" + profile)) || {};
-    } catch {
-      return {};
-    }
+  const [permission, setPermission] = useState(getPermission);
+  const [active, setActive] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(KEY + profile)) || {}; } catch { return {}; }
   });
-  const [customLabel, setCustomLabel] = useState("");
-  const [customTime, setCustomTime] = useState("");
-  const [customAlarms, setCustomAlarms] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem(STORAGE_KEY + "_custom_" + profile)) || [];
-    } catch {
-      return [];
-    }
+  const [custom, setCustom] = useState(() => {
+    try { return JSON.parse(localStorage.getItem(CUSTOM_KEY + profile)) || []; } catch { return []; }
   });
   const [timeouts, setTimeouts] = useState({});
   const [showForm, setShowForm] = useState(false);
+  const [newLabel, setNewLabel] = useState("");
+  const [newTime, setNewTime] = useState("");
 
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + "_" + profile, JSON.stringify(activeAlarms));
-  }, [activeAlarms, profile]);
-
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY + "_custom_" + profile, JSON.stringify(customAlarms));
-  }, [customAlarms, profile]);
+  useEffect(() => { localStorage.setItem(KEY + profile, JSON.stringify(active)); }, [active, profile]);
+  useEffect(() => { localStorage.setItem(CUSTOM_KEY + profile, JSON.stringify(custom)); }, [custom, profile]);
 
   const requestPermission = async () => {
-    if (!("Notification" in window)) return;
     const result = await Notification.requestPermission();
     setPermission(result);
   };
 
-  const toggleAlarm = (alarm) => {
-    if (permission !== "granted") {
-      requestPermission();
-      return;
-    }
-    const key = alarm.id || alarm.label;
-    if (activeAlarms[key]) {
-      clearTimeout(timeouts[key]);
-      setTimeouts((prev) => { const n = { ...prev }; delete n[key]; return n; });
-      setActiveAlarms((prev) => { const n = { ...prev }; delete n[key]; return n; });
+  const toggle = (alarm) => {
+    const k = alarm.id;
+    if (permission !== "granted") { requestPermission(); return; }
+    if (active[k]) {
+      clearTimeout(timeouts[k]);
+      setTimeouts((t) => { const n = { ...t }; delete n[k]; return n; });
+      setActive((a) => { const n = { ...a }; delete n[k]; return n; });
     } else {
-      const id = scheduleNotification(alarm);
-      setTimeouts((prev) => ({ ...prev, [key]: id }));
-      setActiveAlarms((prev) => ({ ...prev, [key]: true }));
+      const id = scheduleNotif(alarm);
+      setTimeouts((t) => ({ ...t, [k]: id }));
+      setActive((a) => ({ ...a, [k]: true }));
     }
   };
 
-  const addCustomAlarm = (e) => {
+  const addCustom = (e) => {
     e.preventDefault();
-    if (!customLabel.trim() || !customTime) return;
-    const alarm = {
-      id: `custom_${Date.now()}`,
-      label: customLabel.trim(),
-      time: customTime,
-      icon: "🔔",
-      description: `Rappel : ${customLabel.trim()}`,
-    };
-    setCustomAlarms((prev) => [...prev, alarm]);
-    setCustomLabel("");
-    setCustomTime("");
-    setShowForm(false);
+    if (!newLabel.trim() || !newTime) return;
+    setCustom((prev) => [...prev, { id: `c_${Date.now()}`, label: newLabel.trim(), time: newTime, description: `Rappel : ${newLabel.trim()}` }]);
+    setNewLabel(""); setNewTime(""); setShowForm(false);
   };
 
-  const deleteCustomAlarm = (id) => {
-    const key = id;
-    if (timeouts[key]) clearTimeout(timeouts[key]);
-    setTimeouts((prev) => { const n = { ...prev }; delete n[key]; return n; });
-    setActiveAlarms((prev) => { const n = { ...prev }; delete n[key]; return n; });
-    setCustomAlarms((prev) => prev.filter((a) => a.id !== id));
+  const deleteCustom = (id) => {
+    if (timeouts[id]) clearTimeout(timeouts[id]);
+    setActive((a) => { const n = { ...a }; delete n[id]; return n; });
+    setCustom((c) => c.filter((a) => a.id !== id));
   };
 
-  const allAlarms = [...PRESET_ALARMS, ...customAlarms];
+  const allAlarms = [...PRESET_ALARMS, ...custom];
 
   return (
     <div className="screen">
-      <h2 className="section-title">Alarmes & Rappels</h2>
+      <div className="screen-header">
+        <h2 className="page-title">Rappels</h2>
+        <button className="btn-icon-round" onClick={() => setShowForm(!showForm)}>
+          {showForm ? <IconX size={18} stroke={2} /> : <IconPlus size={18} stroke={2} />}
+        </button>
+      </div>
 
       {permission === "unsupported" && (
-        <div className="notif-banner error">
-          Les notifications ne sont pas supportées par ce navigateur.
-        </div>
+        <div className="notif-banner error">Les notifications ne sont pas supportées par ce navigateur.</div>
       )}
-
       {permission === "default" && (
         <div className="notif-banner">
-          <p>Active les notifications pour recevoir tes rappels.</p>
-          <button className="btn-primary" onClick={requestPermission}>
-            Autoriser les notifications
-          </button>
+          <p>Autorise les notifications pour recevoir tes rappels.</p>
+          <button className="btn-primary" onClick={requestPermission}>Autoriser</button>
         </div>
       )}
-
       {permission === "denied" && (
-        <div className="notif-banner error">
-          Les notifications sont bloquées. Active-les dans les paramètres du navigateur.
-        </div>
+        <div className="notif-banner error">Notifications bloquées — active-les dans les réglages du navigateur.</div>
       )}
-
       {permission === "granted" && (
-        <div className="notif-banner success">
-          Notifications activées ✓
-        </div>
+        <div className="notif-banner success">Notifications activées</div>
       )}
 
-      <div className="alarms-list">
+      {showForm && (
+        <form className="card alarm-form" onSubmit={addCustom}>
+          <div className="input-grid-2">
+            <div className="input-group">
+              <label>Nom du rappel</label>
+              <input type="text" value={newLabel} onChange={(e) => setNewLabel(e.target.value)} placeholder="Créatine, étirements…" required />
+            </div>
+            <div className="input-group">
+              <label>Heure</label>
+              <input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} required />
+            </div>
+          </div>
+          <div className="form-actions">
+            <button type="button" className="btn-secondary" onClick={() => setShowForm(false)}>Annuler</button>
+            <button type="submit" className="btn-primary">Créer</button>
+          </div>
+        </form>
+      )}
+
+      <div className="alarm-list">
         {allAlarms.map((alarm) => {
-          const key = alarm.id || alarm.label;
-          const isActive = !!activeAlarms[key];
+          const isActive = !!active[alarm.id];
+          const isCustom = alarm.id.startsWith("c_");
           return (
-            <div key={key} className={`alarm-card ${isActive ? "active" : ""}`}>
-              <div className="alarm-icon">{alarm.icon}</div>
+            <div key={alarm.id} className={`alarm-row ${isActive ? "active" : ""}`}>
+              <div className="alarm-icon-wrap">
+                {isActive ? <IconBell size={18} stroke={1.5} /> : <IconBellOff size={18} stroke={1.5} />}
+              </div>
               <div className="alarm-info">
                 <span className="alarm-label">{alarm.label}</span>
                 <span className="alarm-time">{alarm.time}</span>
               </div>
               <div className="alarm-actions">
-                {alarm.id?.startsWith("custom_") && (
-                  <button
-                    className="alarm-delete"
-                    onClick={() => deleteCustomAlarm(alarm.id)}
-                    aria-label="Supprimer"
-                  >
-                    ×
+                {isCustom && (
+                  <button className="btn-ghost-sm" onClick={() => deleteCustom(alarm.id)}>
+                    <IconTrash size={14} stroke={1.5} />
                   </button>
                 )}
                 <button
-                  className={`alarm-toggle ${isActive ? "on" : "off"}`}
-                  onClick={() => toggleAlarm(alarm)}
+                  className={`toggle-switch ${isActive ? "on" : ""}`}
+                  onClick={() => toggle(alarm)}
                   disabled={permission === "denied" || permission === "unsupported"}
                 >
-                  {isActive ? "ON" : "OFF"}
+                  <span className="toggle-thumb" />
                 </button>
               </div>
             </div>
@@ -178,38 +158,7 @@ export default function Alarms() {
         })}
       </div>
 
-      <button className="btn-secondary add-alarm-btn" onClick={() => setShowForm(!showForm)}>
-        {showForm ? "Annuler" : "+ Ajouter un rappel"}
-      </button>
-
-      {showForm && (
-        <form className="custom-alarm-form" onSubmit={addCustomAlarm}>
-          <div className="input-group">
-            <label>Nom du rappel</label>
-            <input
-              type="text"
-              value={customLabel}
-              onChange={(e) => setCustomLabel(e.target.value)}
-              placeholder="Ex: Prise de créatine"
-              required
-            />
-          </div>
-          <div className="input-group">
-            <label>Heure</label>
-            <input
-              type="time"
-              value={customTime}
-              onChange={(e) => setCustomTime(e.target.value)}
-              required
-            />
-          </div>
-          <button type="submit" className="btn-primary">Créer le rappel</button>
-        </form>
-      )}
-
-      <div className="alarms-note">
-        <p>Les alarmes se déclenchent une fois par jour à l'heure choisie. L'application doit rester ouverte dans le navigateur.</p>
-      </div>
+      <p className="alarms-note">L'application doit rester ouverte dans le navigateur pour que les rappels fonctionnent.</p>
     </div>
   );
 }
