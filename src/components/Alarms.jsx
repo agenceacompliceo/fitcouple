@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useProfile } from "../context/ProfileContext";
+import { alarmsDb } from "../lib/db";
 import { IconBell, IconBellOff, IconPlus, IconTrash, IconX } from "@tabler/icons-react";
 
 const KEY = "fitcouple_alarms_";
@@ -45,6 +46,14 @@ export default function Alarms() {
   const [newLabel, setNewLabel] = useState("");
   const [newTime, setNewTime] = useState("");
 
+  useEffect(() => {
+    alarmsDb.getState(profile).then((data) => {
+      if (!data) return;
+      setActive(data.active);
+      setCustom(data.custom);
+    });
+  }, [profile]);
+
   useEffect(() => { localStorage.setItem(KEY + profile, JSON.stringify(active)); }, [active, profile]);
   useEffect(() => { localStorage.setItem(CUSTOM_KEY + profile, JSON.stringify(custom)); }, [custom, profile]);
 
@@ -60,17 +69,21 @@ export default function Alarms() {
       clearTimeout(timeouts[k]);
       setTimeouts((t) => { const n = { ...t }; delete n[k]; return n; });
       setActive((a) => { const n = { ...a }; delete n[k]; return n; });
+      alarmsDb.setActive(profile, k, false, alarm);
     } else {
       const id = scheduleNotif(alarm);
       setTimeouts((t) => ({ ...t, [k]: id }));
       setActive((a) => ({ ...a, [k]: true }));
+      alarmsDb.setActive(profile, k, true, alarm);
     }
   };
 
   const addCustom = (e) => {
     e.preventDefault();
     if (!newLabel.trim() || !newTime) return;
-    setCustom((prev) => [...prev, { id: `c_${Date.now()}`, label: newLabel.trim(), time: newTime, description: `Rappel : ${newLabel.trim()}` }]);
+    const alarm = { id: `c_${Date.now()}`, label: newLabel.trim(), time: newTime, description: `Rappel : ${newLabel.trim()}` };
+    setCustom((prev) => [...prev, alarm]);
+    alarmsDb.addCustom(profile, alarm);
     setNewLabel(""); setNewTime(""); setShowForm(false);
   };
 
@@ -78,6 +91,7 @@ export default function Alarms() {
     if (timeouts[id]) clearTimeout(timeouts[id]);
     setActive((a) => { const n = { ...a }; delete n[id]; return n; });
     setCustom((c) => c.filter((a) => a.id !== id));
+    alarmsDb.deleteCustom(profile, id);
   };
 
   const allAlarms = [...PRESET_ALARMS, ...custom];

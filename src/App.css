@@ -70,9 +70,25 @@ html, body, #root {
   color: var(--text);
 }
 
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
 .top-bar-settings {
   padding: 6px;
 }
+
+.sync-indicator {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+}
+
+.sync-indicator.online { color: var(--success); }
+.sync-indicator.offline { color: var(--text-muted); }
+.sync-indicator.checking { color: var(--text-muted); opacity: 0.5; }
 
 /* ── Main Content ── */
 .main-content {

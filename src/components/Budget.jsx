@@ -3,6 +3,7 @@ import {
   IconPlus, IconTrash, IconChevronLeft, IconChevronRight,
   IconCircleCheck, IconClock, IconX,
 } from "@tabler/icons-react";
+import { budgetEntries as budgetDb } from "../lib/db";
 
 const BUDGET_KEY = "fitcouple_budget";
 
@@ -51,6 +52,12 @@ export default function Budget() {
   const [form, setForm] = useState(EMPTY_FORM);
 
   useEffect(() => {
+    budgetDb.getAll().then((data) => {
+      if (data !== null) setTransactions(data);
+    });
+  }, []);
+
+  useEffect(() => {
     localStorage.setItem(BUDGET_KEY, JSON.stringify(transactions));
   }, [transactions]);
 
@@ -80,17 +87,27 @@ export default function Budget() {
       status: form.type === "loan" ? form.status : null,
     };
     setTransactions((prev) => [...prev, tx]);
+    budgetDb.insert(tx);
     setShowForm(false);
     setForm(EMPTY_FORM);
     setActiveTab(form.type);
   };
 
-  const deleteTransaction = (id) => setTransactions((prev) => prev.filter((t) => t.id !== id));
+  const deleteTransaction = (id) => {
+    setTransactions((prev) => prev.filter((t) => t.id !== id));
+    budgetDb.delete(id);
+  };
 
-  const toggleLoanStatus = (id) =>
+  const toggleLoanStatus = (id) => {
     setTransactions((prev) =>
-      prev.map((t) => t.id === id ? { ...t, status: t.status === "pending" ? "repaid" : "pending" } : t)
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const newStatus = t.status === "pending" ? "repaid" : "pending";
+        budgetDb.updateStatus(id, newStatus);
+        return { ...t, status: newStatus };
+      })
     );
+  };
 
   return (
     <div className="screen">

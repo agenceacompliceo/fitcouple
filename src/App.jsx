@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProfileProvider, useProfile } from "./context/ProfileContext";
 import ProfileSelect from "./components/ProfileSelect";
 import Dashboard from "./components/Dashboard";
@@ -7,7 +7,8 @@ import BodyTracking from "./components/BodyTracking";
 import Alarms from "./components/Alarms";
 import Budget from "./components/Budget";
 import BottomNav from "./components/BottomNav";
-import { IconX, IconSettings } from "@tabler/icons-react";
+import { IconX, IconSettings, IconCloudCheck, IconCloudOff } from "@tabler/icons-react";
+import { syncStatus, checkConnection } from "./lib/db";
 import "./App.css";
 
 function SettingsSheet({ onClose }) {
@@ -63,6 +64,12 @@ function AppContent() {
   const [tab, setTab] = useState("dashboard");
   const [exerciseSession, setExerciseSession] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
+  const [sync, setSync] = useState(syncStatus.get());
+
+  useEffect(() => {
+    checkConnection();
+    return syncStatus.subscribe(setSync);
+  }, []);
 
   if (!profile) return <ProfileSelect />;
 
@@ -82,9 +89,16 @@ function AppContent() {
     <div className="app-shell">
       <header className="top-bar">
         <span className="top-bar-name">{displayName}</span>
-        <button className="btn-ghost top-bar-settings" onClick={() => setShowSettings(true)}>
-          <IconSettings size={20} stroke={1.5} />
-        </button>
+        <div className="top-bar-right">
+          <span className={`sync-indicator ${sync}`} title={sync === "online" ? "Synchronisé" : sync === "offline" ? "Hors ligne" : "Vérification…"}>
+            {sync === "online"
+              ? <IconCloudCheck size={18} stroke={1.5} />
+              : <IconCloudOff size={18} stroke={1.5} />}
+          </span>
+          <button className="btn-ghost top-bar-settings" onClick={() => setShowSettings(true)}>
+            <IconSettings size={20} stroke={1.5} />
+          </button>
+        </div>
       </header>
 
       <main className="main-content" key={tab}>
