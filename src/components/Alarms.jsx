@@ -78,13 +78,17 @@ export default function Alarms() {
     }
   };
 
-  const addCustom = (e) => {
+  const addCustom = async (e) => {
     e.preventDefault();
     if (!newLabel.trim() || !newTime) return;
-    const alarm = { id: `c_${Date.now()}`, label: newLabel.trim(), time: newTime, description: `Rappel : ${newLabel.trim()}` };
+    const tempId = crypto.randomUUID();
+    const alarm = { id: tempId, label: newLabel.trim(), time: newTime, description: `Rappel : ${newLabel.trim()}` };
     setCustom((prev) => [...prev, alarm]);
-    alarmsDb.addCustom(profile, alarm);
     setNewLabel(""); setNewTime(""); setShowForm(false);
+    const serverId = await alarmsDb.addCustom(profile, alarm);
+    if (serverId) {
+      setCustom((prev) => prev.map((a) => a.id === tempId ? { ...a, id: serverId } : a));
+    }
   };
 
   const deleteCustom = (id) => {

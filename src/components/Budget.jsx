@@ -92,11 +92,12 @@ export default function Budget() {
   const visibleItems =
     activeTab === "loan" ? allLoans : byMonth(activeTab);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.amount || parseFloat(form.amount) <= 0) return;
+    const tempId = crypto.randomUUID();
     const tx = {
-      id: Date.now(),
+      id: tempId,
       type: form.type,
       amount: parseFloat(form.amount),
       category: form.type === "loan" ? null : form.category,
@@ -106,10 +107,18 @@ export default function Budget() {
       status: form.type === "loan" ? form.status : null,
     };
     setTransactions((prev) => [...prev, tx]);
-    budgetDb.insert(tx);
     setShowForm(false);
     setForm(EMPTY_FORM);
     setActiveTab(form.type);
+    const serverId = await budgetDb.insert(tx);
+    if (serverId) {
+      // Swap tempId for Supabase UUID; if real-time already added it, remove the temp entry
+      setTransactions((prev) => {
+        const hasServer = prev.some((t) => String(t.id) === String(serverId));
+        if (hasServer) return prev.filter((t) => t.id !== tempId);
+        return prev.map((t) => t.id === tempId ? { ...t, id: serverId } : t);
+      });
+    }
   };
 
   const deleteTransaction = (id) => {

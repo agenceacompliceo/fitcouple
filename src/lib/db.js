@@ -129,22 +129,30 @@ export const budgetEntries = {
     }
   },
 
-  insert(tx) {
-    console.log(`[db] budget_entries: insert id=${tx.id} type=${tx.type} amount=${tx.amount}`);
-    supabase.from("budget_entries").insert({
-      id:           tx.id,
-      type:         BUDGET_TYPE_TO_DB[tx.type] ?? tx.type,
-      montant:      tx.amount,
-      categorie:    tx.category,
-      description:  tx.description,
-      date:         tx.date,
-      pret_personne: tx.person,
-      pret_statut:  tx.status,
-    }).then(({ error }) => {
-      if (error) { fail("budget_entries.insert", error); return; }
-      console.log("[db] budget_entries: insert ok");
+  async insert(tx) {
+    console.log(`[db] budget_entries: insert type=${tx.type} amount=${tx.amount}`);
+    try {
+      const { data, error } = await supabase.from("budget_entries")
+        .insert({
+          // id omitted — Supabase generates UUID via gen_random_uuid()
+          type:          BUDGET_TYPE_TO_DB[tx.type] ?? tx.type,
+          montant:       tx.amount,
+          categorie:     tx.category,
+          description:   tx.description,
+          date:          tx.date,
+          pret_personne: tx.person,
+          pret_statut:   tx.status,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      console.log("[db] budget_entries: insert ok, server id=", data.id);
       ok();
-    }).catch((err) => fail("budget_entries.insert", err));
+      return data.id;
+    } catch (err) {
+      fail("budget_entries.insert", err);
+      return null;
+    }
   },
 
   delete(id) {
@@ -238,16 +246,29 @@ export const alarmsDb = {
       .catch((err) => fail("alarms.setActive", err));
   },
 
-  addCustom(profile, alarm) {
-    console.log(`[db] alarms: addCustom profile_id=${profile} id=${alarm.id}`);
-    supabase.from("alarms").insert({
-      id: alarm.id, profile_id: profile, label: alarm.label, time: alarm.time,
-      description: alarm.description, is_custom: true, enabled: false,
-    }).then(({ error }) => {
-      if (error) { fail("alarms.addCustom", error); return; }
-      console.log("[db] alarms: addCustom ok");
+  async addCustom(profile, alarm) {
+    console.log(`[db] alarms: addCustom profile_id=${profile}`);
+    try {
+      const { data, error } = await supabase.from("alarms")
+        .insert({
+          // id omitted — Supabase generates UUID
+          profile_id:  profile,
+          label:       alarm.label,
+          time:        alarm.time,
+          description: alarm.description,
+          is_custom:   true,
+          enabled:     false,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      console.log("[db] alarms: addCustom ok, server id=", data.id);
       ok();
-    }).catch((err) => fail("alarms.addCustom", err));
+      return data.id;
+    } catch (err) {
+      fail("alarms.addCustom", err);
+      return null;
+    }
   },
 
   deleteCustom(profile, alarmId) {
